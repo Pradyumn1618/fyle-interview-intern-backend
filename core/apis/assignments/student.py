@@ -5,6 +5,7 @@ from core.apis.responses import APIResponse
 from core.models.assignments import Assignment
 
 from .schema import AssignmentSchema, AssignmentSubmitSchema
+from core.models.assignments import AssignmentStateEnum
 student_assignments_resources = Blueprint('student_assignments_resources', __name__)
 
 
@@ -43,6 +44,15 @@ def submit_assignment(p, incoming_payload):
         teacher_id=submit_assignment_payload.teacher_id,
         auth_principal=p
     )
+    submitted_assignment.state = AssignmentStateEnum.SUBMITTED
     db.session.commit()
     submitted_assignment_dump = AssignmentSchema().dump(submitted_assignment)
     return APIResponse.respond(data=submitted_assignment_dump)
+
+@student_assignments_resources.route('/assignments/all', methods=['GET'], strict_slashes=False)
+@decorators.authenticate_principal
+def get_all(p):
+    """Returns list of assignments"""
+    students_assignments = Assignment.get_all()
+    students_assignments_dump = AssignmentSchema().dump(students_assignments, many=True)
+    return APIResponse.respond(data=students_assignments_dump)

@@ -50,9 +50,13 @@ class Assignment(db.Model):
             assertions.assert_found(assignment, 'No assignment with this id was found')
             assertions.assert_valid(assignment.state == AssignmentStateEnum.DRAFT,
                                     'only assignment in draft state can be edited')
+            assertions.assert_valid(assignment.student_id != assignment_new.student_id, 'This assignment belongs to some other student')
+            assertions.assert_valid(assignment.content is not None, 'Content cannot be empty')
 
             assignment.content = assignment_new.content
         else:
+            assertions.assert_valid(assignment_new.student_id != assignment_new.student_id, 'This assignment belongs to some other student')
+            assertions.assert_valid(assignment_new.content is not None, 'Content cannot be empty')
             assignment = assignment_new
             db.session.add(assignment_new)
 
@@ -65,6 +69,7 @@ class Assignment(db.Model):
         assertions.assert_found(assignment, 'No assignment with this id was found')
         assertions.assert_valid(assignment.student_id == auth_principal.student_id, 'This assignment belongs to some other student')
         assertions.assert_valid(assignment.content is not None, 'assignment with empty content cannot be submitted')
+        assertions.assert_valid(assignment.state == AssignmentStateEnum.DRAFT, 'only a draft assignment can be submitted')
 
         assignment.teacher_id = teacher_id
         db.session.flush()
@@ -83,6 +88,22 @@ class Assignment(db.Model):
         db.session.flush()
 
         return assignment
+    
+    @classmethod
+    def re_grade(cls, _id, grade, auth_principal: AuthPrincipal):
+        assignment = Assignment.get_by_id(_id)
+        assertions.assert_found(assignment, 'No assignment with this id was found')
+        assertions.assert_valid(grade is not None, 'assignment with empty grade cannot be graded')
+        assertions.assert_valid(
+        assignment.state != AssignmentStateEnum.DRAFT,
+        'assignment in draft state cannot be graded'
+    )
+
+        assignment.grade = grade
+        assignment.state = AssignmentStateEnum.GRADED
+        db.session.flush()
+
+        return assignment
 
     @classmethod
     def get_assignments_by_student(cls, student_id):
@@ -95,3 +116,7 @@ class Assignment(db.Model):
     @classmethod
     def get_submitted_and_graded_assignments(cls):
         return cls.filter((cls.state == AssignmentStateEnum.GRADED) | (cls.state == AssignmentStateEnum.SUBMITTED)).all()
+    
+    @classmethod
+    def get_all(cls):
+        return cls.query.all()
