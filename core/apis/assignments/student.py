@@ -48,11 +48,3 @@ def submit_assignment(p, incoming_payload):
     db.session.commit()
     submitted_assignment_dump = AssignmentSchema().dump(submitted_assignment)
     return APIResponse.respond(data=submitted_assignment_dump)
-
-@student_assignments_resources.route('/assignments/all', methods=['GET'], strict_slashes=False)
-@decorators.authenticate_principal
-def get_all(p):
-    """Returns list of assignments"""
-    students_assignments = Assignment.get_all()
-    students_assignments_dump = AssignmentSchema().dump(students_assignments, many=True)
-    return APIResponse.respond(data=students_assignments_dump)
